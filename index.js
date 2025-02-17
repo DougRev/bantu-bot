@@ -23,25 +23,31 @@ const client = new Client({
   ]
 });
 
-// Prepare yt-dlp plugin options.
+// Set up yt-dlp options
 const ytDlpOptions = {
-  pythonPath: "python", // Use "python" (as available on Heroku)
+  pythonPath: "python", // Use "python" as available on Heroku
   overrideOptions: {
     default_search: "ytsearch"
   }
 };
 
-// Decode cookies from base64 if available and attach them.
+// Decode cookies from the base64‑encoded config var (if set) and attach them.
 if (process.env.YTDLP_COOKIES_B64) {
   try {
-    const cookies = Buffer.from(process.env.YTDLP_COOKIES_B64, 'base64').toString('utf8');
-    console.log("Decoded cookies length:", cookies.length);
-    ytDlpOptions.overrideOptions.cookies = cookies;
+    const decodedCookies = Buffer.from(process.env.YTDLP_COOKIES_B64, 'base64').toString('utf8');
+    console.log("Decoded cookies length:", decodedCookies.length);
+    // Attach cookies only if the decoded length is above a reasonable threshold.
+    if (decodedCookies.length > 1000) {
+      ytDlpOptions.overrideOptions.cookies = decodedCookies;
+    } else {
+      console.warn("Decoded cookies length is unexpectedly low; check your exported cookies file.");
+    }
   } catch (error) {
     console.error("Error decoding YTDLP_COOKIES_B64:", error);
   }
 }
 
+// Initialize DisTube with the YtDlpPlugin
 client.distube = new DisTube(client, {
   emitNewSongOnly: true,
   plugins: [new YtDlpPlugin(ytDlpOptions)]
@@ -67,7 +73,7 @@ client.on("messageCreate", async message => {
     if (!voiceChannel) {
       return message.channel.send("You need to be in a voice channel to play music.");
     }
-    // If query is not a URL, use yt-search to get the first video URL.
+    // If query is not a URL, search for a video using yt-search.
     if (!isValidUrl(query)) {
       try {
         const searchResult = await ytSearch(query);
