@@ -23,16 +23,23 @@ const client = new Client({
   ]
 });
 
-// Initialize DisTube with the YtDlpPlugin configured to use `python` instead of `python3`.
+// Prepare plugin override options.
+const ytDlpOptions = {
+  // Use the system's python command.
+  pythonPath: "python",
+  overrideOptions: {
+    default_search: "ytsearch"
+  }
+};
+// If cookies are provided via environment variable, include them.
+if (process.env.YTDLP_COOKIES) {
+  ytDlpOptions.overrideOptions.cookies = process.env.YTDLP_COOKIES;
+}
+
+// Initialize DisTube with the YtDlpPlugin.
 client.distube = new DisTube(client, {
   emitNewSongOnly: true,
-  plugins: [
-    new YtDlpPlugin({
-      // Specify the python executable to use.
-      // This tells the plugin to use "python" (which is available in Heroku) instead of "python3".
-      pythonPath: "python"
-    })
-  ]
+  plugins: [new YtDlpPlugin(ytDlpOptions)]
 });
 
 const prefix = process.env.PREFIX || "!";
@@ -81,7 +88,7 @@ client.on("messageCreate", async message => {
       await client.distube.play(voiceChannel, query, { 
         textChannel: message.channel, 
         member: message.member,
-        searchSongs: 0 // Automatically select the first result.
+        searchSongs: 0 // Automatically select the first result (should be moot since we supply a URL)
       });
     } catch (error) {
       if (error.errorCode === "NO_RESULT") {
