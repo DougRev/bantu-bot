@@ -25,22 +25,21 @@ const client = new Client({
 
 // Prepare plugin override options.
 const ytDlpOptions = {
-  // Use the system's python command.
   pythonPath: "python",
   overrideOptions: {
     default_search: "ytsearch"
   }
 };
-// If cookies are provided via environment variable, include them.
+
 if (process.env.YTDLP_COOKIES) {
   ytDlpOptions.overrideOptions.cookies = process.env.YTDLP_COOKIES;
 }
 
-// Initialize DisTube with the YtDlpPlugin.
 client.distube = new DisTube(client, {
   emitNewSongOnly: true,
   plugins: [new YtDlpPlugin(ytDlpOptions)]
 });
+
 
 const prefix = process.env.PREFIX || "!";
 
