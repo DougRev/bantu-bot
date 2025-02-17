@@ -23,10 +23,16 @@ const client = new Client({
   ]
 });
 
-// Initialize DisTube.
+// Initialize DisTube with the YtDlpPlugin configured to use `python` instead of `python3`.
 client.distube = new DisTube(client, {
   emitNewSongOnly: true,
-  plugins: [new YtDlpPlugin()]
+  plugins: [
+    new YtDlpPlugin({
+      // Specify the python executable to use.
+      // This tells the plugin to use "python" (which is available in Heroku) instead of "python3".
+      pythonPath: "python"
+    })
+  ]
 });
 
 const prefix = process.env.PREFIX || "!";
@@ -48,13 +54,11 @@ client.on("messageCreate", async message => {
     if (!query) {
       return message.channel.send("Please provide a song name or YouTube URL.");
     }
-    
     // Ensure the user is in a voice channel.
     const voiceChannel = message.member.voice.channel;
     if (!voiceChannel) {
       return message.channel.send("You need to be in a voice channel to play music.");
     }
-    
     // If the query is not a valid URL, use yt-search to find the first matching video.
     if (!isValidUrl(query)) {
       try {
@@ -77,7 +81,7 @@ client.on("messageCreate", async message => {
       await client.distube.play(voiceChannel, query, { 
         textChannel: message.channel, 
         member: message.member,
-        searchSongs: 0 // Automatically select the first result (should be moot now).
+        searchSongs: 0 // Automatically select the first result.
       });
     } catch (error) {
       if (error.errorCode === "NO_RESULT") {
