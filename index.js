@@ -31,7 +31,8 @@ const ytDlpOptions = {
   }
 };
 
-// Decode cookies from the base64-encoded config variable if available.
+// Determine and attach cookies if provided.
+// First, check for base64-encoded cookies.
 if (process.env.YTDLP_COOKIES_B64) {
   try {
     const decodedCookies = Buffer.from(process.env.YTDLP_COOKIES_B64, 'base64').toString('utf8');
@@ -39,14 +40,26 @@ if (process.env.YTDLP_COOKIES_B64) {
     // Only attach cookies if the decoded string is reasonably long.
     if (decodedCookies.length > 1000) {
       ytDlpOptions.overrideOptions.cookies = decodedCookies;
+      console.log("Using decoded base64 cookies for yt-dlp.");
     } else {
       console.warn("Decoded cookies appear too short; please check your exported cookies file.");
     }
   } catch (error) {
     console.error("Error decoding YTDLP_COOKIES_B64:", error);
   }
+} else if (process.env.YTDLP_COOKIES) {
+  // Fallback: if plain text cookies are provided in YTDLP_COOKIES.
+  if (process.env.YTDLP_COOKIES.length > 1000) {
+    ytDlpOptions.overrideOptions.cookies = process.env.YTDLP_COOKIES;
+    console.log("Using plain text cookies from YTDLP_COOKIES.");
+  } else {
+    console.warn("YTDLP_COOKIES value appears too short; please check its content.");
+  }
+} else {
+  console.warn("No cookies provided via YTDLP_COOKIES_B64 or YTDLP_COOKIES.");
 }
 
+// Initialize DisTube with the YtDlpPlugin using the options.
 client.distube = new DisTube(client, {
   emitNewSongOnly: true,
   plugins: [new YtDlpPlugin(ytDlpOptions)]
