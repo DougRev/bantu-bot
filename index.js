@@ -33,19 +33,21 @@ const ytDlpOptions = {
   }
 };
 
+// Set a custom user agent to mimic a common browser.
+ytDlpOptions.overrideOptions.user_agent =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36";
+
 const tempCookiePath = path.join(__dirname, "temp_cookies.txt");
 
 // Determine and attach cookies if provided.
-// First, check for base64-encoded cookies.
 if (process.env.YTDLP_COOKIES_B64) {
   try {
     const decodedCookies = Buffer.from(process.env.YTDLP_COOKIES_B64, 'base64').toString('utf8');
     console.log("Decoded cookies length:", decodedCookies.length);
-    // Only attach cookies if the decoded string is reasonably long.
     if (decodedCookies.length > 1000) {
       // Write cookies to a temporary file.
       fs.writeFileSync(tempCookiePath, decodedCookies);
-      // Pass the file path instead of the raw string.
+      // Pass the file path.
       ytDlpOptions.overrideOptions.cookies = tempCookiePath;
       console.log("Using cookies from file:", tempCookiePath);
     } else {
@@ -55,9 +57,7 @@ if (process.env.YTDLP_COOKIES_B64) {
     console.error("Error decoding YTDLP_COOKIES_B64:", error);
   }
 } else if (process.env.YTDLP_COOKIES) {
-  // Fallback: if plain text cookies are provided in YTDLP_COOKIES.
   if (process.env.YTDLP_COOKIES.length > 1000) {
-    // Write plain text cookies to the file.
     fs.writeFileSync(tempCookiePath, process.env.YTDLP_COOKIES);
     ytDlpOptions.overrideOptions.cookies = tempCookiePath;
     console.log("Using plain text cookies from file:", tempCookiePath);
@@ -94,7 +94,6 @@ client.on("messageCreate", async message => {
     if (!voiceChannel) {
       return message.channel.send("You need to be in a voice channel to play music.");
     }
-    // If the query is not a URL, use yt-search to find the first video.
     if (!isValidUrl(query)) {
       try {
         const searchResult = await ytSearch(query);
@@ -115,7 +114,7 @@ client.on("messageCreate", async message => {
       await client.distube.play(voiceChannel, query, {
         textChannel: message.channel,
         member: message.member,
-        searchSongs: 0 // Automatically select the first result.
+        searchSongs: 0
       });
     } catch (error) {
       if (error.errorCode === "NO_RESULT") {
