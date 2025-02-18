@@ -1,4 +1,6 @@
 require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
 const { Client, GatewayIntentBits } = require("discord.js");
 const { DisTube } = require("distube");
 const { YtDlpPlugin } = require("@distube/yt-dlp");
@@ -31,6 +33,8 @@ const ytDlpOptions = {
   }
 };
 
+const tempCookiePath = path.join(__dirname, "temp_cookies.txt");
+
 // Determine and attach cookies if provided.
 // First, check for base64-encoded cookies.
 if (process.env.YTDLP_COOKIES_B64) {
@@ -39,8 +43,11 @@ if (process.env.YTDLP_COOKIES_B64) {
     console.log("Decoded cookies length:", decodedCookies.length);
     // Only attach cookies if the decoded string is reasonably long.
     if (decodedCookies.length > 1000) {
-      ytDlpOptions.overrideOptions.cookies = decodedCookies;
-      console.log("Using decoded base64 cookies for yt-dlp.");
+      // Write cookies to a temporary file.
+      fs.writeFileSync(tempCookiePath, decodedCookies);
+      // Pass the file path instead of the raw string.
+      ytDlpOptions.overrideOptions.cookies = tempCookiePath;
+      console.log("Using cookies from file:", tempCookiePath);
     } else {
       console.warn("Decoded cookies appear too short; please check your exported cookies file.");
     }
@@ -50,8 +57,10 @@ if (process.env.YTDLP_COOKIES_B64) {
 } else if (process.env.YTDLP_COOKIES) {
   // Fallback: if plain text cookies are provided in YTDLP_COOKIES.
   if (process.env.YTDLP_COOKIES.length > 1000) {
-    ytDlpOptions.overrideOptions.cookies = process.env.YTDLP_COOKIES;
-    console.log("Using plain text cookies from YTDLP_COOKIES.");
+    // Write plain text cookies to the file.
+    fs.writeFileSync(tempCookiePath, process.env.YTDLP_COOKIES);
+    ytDlpOptions.overrideOptions.cookies = tempCookiePath;
+    console.log("Using plain text cookies from file:", tempCookiePath);
   } else {
     console.warn("YTDLP_COOKIES value appears too short; please check its content.");
   }
